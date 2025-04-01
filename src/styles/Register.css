@@ -1,0 +1,151 @@
+/* src/styles/Register.css */
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8f0ff 0%, #e8eaf6 100%);
+    padding: 1rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .register-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+  
+  .register-card h2 {
+    color: #7c3aed;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 0.75rem; /* Reducimos el espacio entre campos */
+    margin-bottom: 1rem;
+    align-items: flex-end; /* Alinea los campos por la parte inferior */
+  }
+  
+  .input-group {
+    margin-bottom: 1.2rem;
+  }
+  
+  .input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .input-group input,
+  .input-group select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    background-color: #f9fafb;
+    transition: all 0.3s ease;
+  }
+  
+  .input-group input:focus,
+  .input-group select:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    outline: none;
+    background-color: white;
+  }
+  
+  .input-group.date-group {
+    grid-column: span 2;
+  }
+  
+  .input-group.full-width {
+    grid-column: span 2;
+  }
+  
+  button[type="submit"] {
+    width: 100%;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    background: linear-gradient(to right, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  button[type="submit"]:hover {
+    background: linear-gradient(to right, #7c3aed, #6d28d9);
+    transform: translateY(-2px);
+  }
+  
+  button[type="submit"]:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+  
+  .login-link a {
+    color: #8b5cf6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .login-link a:hover {
+    text-decoration: underline;
+  }
+  
+  .error-message {
+    color: #dc2626;
+    background-color: #fee2e2;
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    text-align: center;
+    grid-column: span 2;
+  }
+  
+  /* Estilo especial para el selector de país */
+  .input-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1rem;
+  }
+  
+  /* Estilo para el campo de fecha */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(0.3);
+  }
