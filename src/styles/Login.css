@@ -45,13 +45,17 @@
   }
   
   .input-group input {
-    width: 100%;
-    padding: 12px 16px;
+    width: 93% !important;
+    padding: 12px 16px ;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s;
-    background-color: #f9fafb;
+    background-color: #f9fafb !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
   }
   
   .input-group input:focus {
@@ -139,29 +143,34 @@
   }
 
   /* Agrega esto a tu Login.css */
-
-.password-input {
+  .password-input {
     position: relative;
   }
   
   .toggle-password {
     position: absolute;
-    right: 12px;
+    right: 10px; /* Añade esto para posicionar a la derecha */
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
     color: #666;
+    padding: 0; /* Asegura que no haya padding adicional */
   }
   
   .toggle-password svg {
     width: 20px;
     height: 20px;
     fill: currentColor;
+    /* Remueve el background-color amarillo a menos que lo necesites */
+    /* background-color: yellow; */
   }
-  
+
+  .password-input input {
+    padding-right: 35px; /* Ajusta según sea necesario */
+    width: 100%; /* Asegura que el input ocupe todo el ancho disponible */
+  }
   .error-message {
     display: flex;
     align-items: center;

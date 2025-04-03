@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { saveAs } from 'file-saver';
@@ -6,6 +6,7 @@ import Header from '../components/header';
 import '../styles/ProductList.css';
 
 const InventoryList = () => {
+    // Estados principales
     const [items, setItems] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
@@ -21,11 +22,9 @@ const InventoryList = () => {
         numeroFactura: ''
     });
     const [isLoading, setIsLoading] = useState(false);
-    const [pagination, setPagination] = useState({
-        page: 1,
-        totalPages: 1,
-        totalItems: 0
-    });
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [skip, setSkip] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
     const [filters, setFilters] = useState({
         nParte: '',
         descripcion: '',
@@ -38,13 +37,15 @@ const InventoryList = () => {
         numeroFactura: ''
     });
     const [debouncedFilters, setDebouncedFilters] = useState(filters);
+    
+    // Refs y hooks
+    const tableContainerRef = useRef(null);
     const navigate = useNavigate();
-
-    // Obtener usuario del localStorage
+    const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
     const userName = user ? user.nombre : 'Usuario';
 
-    // Debounce para filtros de texto
+    // Debounce para filtros (500ms)
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedFilters(filters);
@@ -53,49 +54,53 @@ const InventoryList = () => {
         return () => clearTimeout(handler);
     }, [filters]);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
+    // Construir parámetros de filtro
+    const buildFilters = useCallback(() => {
+        const params = {};
+        Object.entries(debouncedFilters).forEach(([key, value]) => {
+            if (value !== '' && value !== undefined) {
+                if (['nParte', 'descripcion', 'serial', 'cliente', 'oc', 'numeroFactura'].includes(key)) {
+                    params[`${key}[regex]`] = value;
+                    params[`${key}[options]`] = 'i'; // Case-insensitive
+                } else if (key === 'facturado') {
+                    params[key] = value === 'true';
+                } else {
+                    params[key] = value;
+                }
+            }
+        });
+        return params;
+    }, [debouncedFilters]);
+
+    // Cargar items (inicial o al cambiar filtros)
+    const fetchItems = useCallback(async (loadMore = false) => {
         if (!token) {
             navigate('/');
             return;
         }
-        fetchItems();
-    }, [navigate, pagination.page, debouncedFilters]);
 
-    const fetchItems = async () => {
         try {
-            setIsLoading(true);
-            const token = localStorage.getItem('token');
-            const params = {
-                page: pagination.page,
-                limit: 10
-            };
+            if (loadMore) {
+                setIsLoadingMore(true);
+            } else {
+                setIsLoading(true);
+                setSkip(0);
+            }
 
-            // Añadir filtros con formato correcto
-            Object.entries(debouncedFilters).forEach(([key, value]) => {
-                if (value !== '') {
-                    if (['nParte', 'descripcion', 'serial', 'cliente', 'oc', 'numeroFactura'].includes(key)) {
-                        params[`${key}[regex]`] = value;
-                        params[`${key}[options]`] = 'i';
-                    } else {
-                        params[key] = value;
-                    }
-                }
-            });
+            const params = {
+                skip: loadMore ? skip : 0,
+                limit: 20,
+                ...buildFilters()
+            };
 
             const res = await axios.get('http://localhost:5000/api/inventory', {
                 headers: { Authorization: `Bearer ${token}` },
                 params
             });
 
-            if (res.data && Array.isArray(res.data.items)) {
-                setItems(res.data.items);
-                setPagination({
-                    page: res.data.currentPage,
-                    totalPages: res.data.totalPages,
-                    totalItems: res.data.totalItems
-                });
-            }
+            setItems(prev => loadMore ? [...prev, ...res.data.items] : res.data.items);
+            setHasMore(res.data.hasMore);
+            setSkip(prev => loadMore ? prev + res.data.items.length : res.data.items.length);
         } catch (err) {
             console.error('Error al obtener items:', err);
             if (err.response?.status === 401) {
@@ -103,10 +108,42 @@ const InventoryList = () => {
                 navigate('/');
             }
         } finally {
-            setIsLoading(false);
+            if (loadMore) {
+                setIsLoadingMore(false);
+            } else {
+                setIsLoading(false);
+            }
         }
-    };
+    }, [token, navigate, skip, buildFilters]);
 
+    // Cargar items iniciales o al cambiar filtros
+    useEffect(() => {
+        fetchItems();
+    }, [debouncedFilters, fetchItems]);
+
+    // Manejar scroll infinito
+    const handleScroll = useCallback(() => {
+        if (
+            tableContainerRef.current &&
+            tableContainerRef.current.scrollTop + tableContainerRef.current.clientHeight >= 
+            tableContainerRef.current.scrollHeight - 100 &&
+            !isLoadingMore && 
+            hasMore
+        ) {
+            fetchItems(true);
+        }
+    }, [isLoadingMore, hasMore, fetchItems]);
+
+    // Configurar event listener para scroll
+    useEffect(() => {
+        const container = tableContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+            return () => container.removeEventListener('scroll', handleScroll);
+        }
+    }, [handleScroll]);
+
+    // Manejadores de eventos
     const handleFilterChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFilters(prev => ({
@@ -154,7 +191,6 @@ const InventoryList = () => {
 
     const handleUpdate = async (id) => {
         try {
-            const token = localStorage.getItem('token');
             const response = await axios.put(
                 `http://localhost:5000/api/inventory/${id}`,
                 editForm,
@@ -174,7 +210,6 @@ const InventoryList = () => {
     const handleDelete = async (id) => {
         if (window.confirm('¿Estás seguro de eliminar este registro?')) {
             try {
-                const token = localStorage.getItem('token');
                 await axios.delete(`http://localhost:5000/api/inventory/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -201,7 +236,6 @@ const InventoryList = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
             await axios.post('http://localhost:5000/api/inventory', newItem, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -339,7 +373,7 @@ const InventoryList = () => {
                 </div>
             </div>
 
-            <div className="table-container">
+            <div className="table-container" ref={tableContainerRef}>
                 <div className="table-actions">
                     <button 
                         onClick={exportToCSV} 
@@ -357,7 +391,7 @@ const InventoryList = () => {
                 </div>
 
                 <table>
-                    <thead>
+                    <thead className='headertable'>
                         <tr>
                             <th>N° Parte</th>
                             <th>Descripción</th>
@@ -587,21 +621,15 @@ const InventoryList = () => {
                     </tbody>
                 </table>
 
-                {pagination.totalPages > 1 && (
-                    <div className="pagination">
-                        <button
-                            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                            disabled={pagination.page <= 1 || isLoading}
-                        >
-                            Anterior
-                        </button>
-                        <span>Página {pagination.page} de {pagination.totalPages}</span>
-                        <button
-                            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                            disabled={pagination.page >= pagination.totalPages || isLoading}
-                        >
-                            Siguiente
-                        </button>
+                {isLoadingMore && (
+                    <div className="loading-more">
+                        <div className="spinner"></div>
+                        Cargando más registros...
+                    </div>
+                )}
+                {!hasMore && items.length > 0 && (
+                    <div className="no-more-results">
+                        No hay más registros para mostrar
                     </div>
                 )}
             </div>
