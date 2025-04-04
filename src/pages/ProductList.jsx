@@ -37,7 +37,7 @@ const InventoryList = () => {
         numeroFactura: ''
     });
     const [debouncedFilters, setDebouncedFilters] = useState(filters);
-    
+
     // Refs y hooks
     const tableContainerRef = useRef(null);
     const navigate = useNavigate();
@@ -69,70 +69,79 @@ const InventoryList = () => {
                 }
             }
         });
+        console.log('Parámetros de filtro:', params); // Agrega esta línea para imprimir los parámetros de filtro
         return params;
     }, [debouncedFilters]);
 
-    // Cargar items (inicial o al cambiar filtros)
+    const skipRef = useRef(skip);
+    useEffect(() => {
+        skipRef.current = skip;
+    }, [skip]);
     const fetchItems = useCallback(async (loadMore = false) => {
-        if (!token) {
-            navigate('/');
-            return;
-        }
-
+        if (!token || isLoadingMore || isLoading) return;
+      
         try {
-            if (loadMore) {
-                setIsLoadingMore(true);
-            } else {
-                setIsLoading(true);
-                setSkip(0);
-            }
-
-            const params = {
-                skip: loadMore ? skip : 0,
-                limit: 20,
-                ...buildFilters()
-            };
-
-            const res = await axios.get('http://localhost:5000/api/inventory', {
-                headers: { Authorization: `Bearer ${token}` },
-                params
-            });
-
-            setItems(prev => loadMore ? [...prev, ...res.data.items] : res.data.items);
-            setHasMore(res.data.hasMore);
-            setSkip(prev => loadMore ? prev + res.data.items.length : res.data.items.length);
+          if (loadMore) {
+            setIsLoadingMore(true);
+          } else {
+            setIsLoading(true);
+            setSkip(0);
+          }
+      
+          const params = {
+            skip: loadMore ? skip : 0, // Usar el estado directamente
+            limit: 50,
+            ...buildFilters()
+          };
+      
+          const res = await axios.get('http://localhost:5000/api/inventory', {
+            headers: { Authorization: `Bearer ${token}` },
+            params
+          });
+      
+          // Verifica si hay más registros correctamente
+          const receivedItems = res.data.items;
+          const currentHasMore = receivedItems.length >= 50;
+          
+          setItems(prev => loadMore ? [...prev, ...receivedItems] : receivedItems);
+          setHasMore(currentHasMore);
+          setSkip(prev => loadMore ? prev + receivedItems.length : receivedItems.length);
         } catch (err) {
-            console.error('Error al obtener items:', err);
-            if (err.response?.status === 401) {
-                localStorage.removeItem('token');
-                navigate('/');
-            }
+          console.error('Error al obtener items:', err);
+          if (err.response?.status === 401) navigate('/');
         } finally {
-            if (loadMore) {
-                setIsLoadingMore(false);
-            } else {
-                setIsLoading(false);
-            }
+          setIsLoading(false);
+          setIsLoadingMore(false);
         }
-    }, [token, navigate, skip, buildFilters]);
+      }, [token, skip, buildFilters, navigate, isLoadingMore, isLoading]);
 
-    // Cargar items iniciales o al cambiar filtros
     useEffect(() => {
         fetchItems();
-    }, [debouncedFilters, fetchItems]);
+    }, [debouncedFilters]); // Eliminar fetchItems de las dependencias
 
-    // Manejar scroll infinito
-    const handleScroll = useCallback(() => {
-        if (
-            tableContainerRef.current &&
-            tableContainerRef.current.scrollTop + tableContainerRef.current.clientHeight >= 
-            tableContainerRef.current.scrollHeight - 100 &&
-            !isLoadingMore && 
-            hasMore
-        ) {
-            fetchItems(true);
-        }
-    }, [isLoadingMore, hasMore, fetchItems]);
+// InventoryList.js (modificaciones clave)
+
+const handleScroll = useCallback(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+  
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isNearBottom = scrollHeight - (scrollTop + clientHeight) < 100;
+  
+    if (isNearBottom && hasMore && !isLoadingMore && !isLoading) {
+      fetchItems(true);
+    }
+  }, [hasMore, isLoadingMore, isLoading, fetchItems]);
+  
+  // 2. Modificar useEffect para escuchar scroll en el contenedor
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);  
+
 
     // Configurar event listener para scroll
     useEffect(() => {
@@ -197,7 +206,7 @@ const InventoryList = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            setItems(prev => prev.map(item => 
+            setItems(prev => prev.map(item =>
                 item._id === id ? response.data : item
             ));
             setEditingId(null);
@@ -256,9 +265,11 @@ const InventoryList = () => {
             alert(err.response?.data?.error || 'Error al crear item');
         }
     };
-
+    const [isExporting, setIsExporting] = useState(false);
     const exportToCSV = () => {
-        setIsLoading(true);
+        if (isExporting) return;
+        setIsExporting(true);
+
         const headers = ['N° Parte', 'Descripción', 'Serial', 'Tipo', 'Cliente', 'OC', 'Status', 'Facturado', 'N° Factura'];
         const data = items.map(item => [
             item.nParte,
@@ -272,14 +283,13 @@ const InventoryList = () => {
             item.numeroFactura || ''
         ]);
 
-        let csvContent = "data:text/csv;charset=utf-8," 
-            + headers.join(',') + '\n' 
-            + data.map(row => row.join(',')).join('\n');
-
+        const csvContent = headers.join(',') + '\n' + data.map(row => row.join(',')).join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         saveAs(blob, 'inventario.csv');
-        setIsLoading(false);
+
+        setIsExporting(false);
     };
+
 
     return (
         <div className="product-list-container">
@@ -375,14 +385,15 @@ const InventoryList = () => {
 
             <div className="table-container" ref={tableContainerRef}>
                 <div className="table-actions">
-                    <button 
-                        onClick={exportToCSV} 
-                        disabled={isLoading || items.length === 0}
+                    <button
+                        onClick={exportToCSV}
+                        disabled={isExporting || items.length === 0}
                     >
-                        {isLoading ? 'Exportando...' : 'Exportar a CSV'}
+                        {isExporting ? 'Exportando...' : 'Exportar a CSV'}
                     </button>
-                    <button 
-                        onClick={resetFilters} 
+
+                    <button
+                        onClick={resetFilters}
                         className="reset-filters"
                         disabled={Object.values(filters).every(val => val === '')}
                     >
