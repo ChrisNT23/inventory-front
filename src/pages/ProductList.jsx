@@ -154,12 +154,17 @@ const handleScroll = useCallback(() => {
 
     // Manejadores de eventos
     const handleFilterChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFilters(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
+        const name = e.target.name;
+        const value = e.target.value;
+      
+        setFilters((prevFilters) => ({
+          ...prevFilters,
+          [name]: value,
         }));
-    };
+        console.log(filters); // Verificar que el objeto filters está actualizado con los valores correctos después de hacer un cambio en el formulario de filtro
+      };
+      
+      
 
     const resetFilters = () => {
         setFilters({
