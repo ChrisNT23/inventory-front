@@ -351,6 +351,7 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  
 }
 
 /* Estilos para el formulario de agregar */
@@ -384,7 +385,14 @@
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 8px;
-  position: relative;
+  position: sticky;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    background-color: #2c3e50; /* Mismo color que el encabezado */
+    z-index: 10; /* Asegura que el encabezado esté por encima del cuerpo de la tabla */
 }
 
 table {

@@ -55,23 +55,23 @@ const InventoryList = () => {
     }, [filters]);
 
     // Construir parámetros de filtro
-    const buildFilters = useCallback(() => {
-        const params = {};
-        Object.entries(debouncedFilters).forEach(([key, value]) => {
-            if (value !== '' && value !== undefined) {
-                if (['nParte', 'descripcion', 'serial', 'cliente', 'oc', 'numeroFactura'].includes(key)) {
-                    params[`${key}[regex]`] = value;
-                    params[`${key}[options]`] = 'i'; // Case-insensitive
-                } else if (key === 'facturado') {
-                    params[key] = value === 'true';
-                } else {
-                    params[key] = value;
-                }
-            }
-        });
-        console.log('Parámetros de filtro:', params); // Agrega esta línea para imprimir los parámetros de filtro
-        return params;
-    }, [debouncedFilters]);
+  const buildFilters = useCallback(() => {
+  const params = {};
+  Object.entries(debouncedFilters).forEach(([key, value]) => {
+    if (value !== '' && value !== undefined) {
+      if (['nParte', 'descripcion', 'serial', 'cliente', 'oc', 'numeroFactura'].includes(key)) {
+        params[key] = value; // Solo enviar el valor del filtro
+      } else if (key === 'facturado') {
+        params[key] = value === 'true';
+      } else {
+        params[key] = value;
+      }
+    }
+  });
+  console.log('Parámetros de filtro:', params); // Agregar log para depuración
+  return params;
+}, [debouncedFilters]);
+
 
     const skipRef = useRef(skip);
     useEffect(() => {
@@ -611,7 +611,7 @@ const handleScroll = useCallback(() => {
                                     ) : (
                                         <>
                                             <td>{item.nParte}</td>
-                                            <td>{item.descripcion || '-'}</td>
+                                            <td>{item.description || '-'}</td>
                                             <td>{item.serial}</td>
                                             <td>{item.tipo}</td>
                                             <td>{item.cliente}</td>
