@@ -205,6 +205,7 @@ const handleScroll = useCallback(() => {
 
     const handleUpdate = async (id) => {
         try {
+            console.log('Datos a actualizar:', editForm); 
             const response = await axios.put(
                 `http://localhost:5000/api/inventory/${id}`,
                 editForm,
